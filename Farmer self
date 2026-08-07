@@ -1,0 +1,409 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { Home, Droplet, Users, Plus, X, Wallet, Trash2, Sun, Moon, CheckCircle2, Circle, Phone, MessageCircle, QrCode, Settings, Eye, Copy, Check } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+
+const COLORS = {
+  bg: '#FFFDF7',
+  primary: '#1F4D36',
+  primaryLight: '#2F6B4A',
+  accent: '#E8A33D',
+  clay: '#8B5E3C',
+  text: '#1A2E22',
+  due: '#B24A3E',
+  muted: '#A8A08D',
+  card: '#FFFFFF',
+  line: '#EEE7D6',
+};
+const TARGET = 40;
+
+const bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+const toBn = (num) => String(num).replace(/[0-9]/g, (d) => bnDigits[d]);
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const fmtDate = (ds) => {
+  const d = new Date(ds + 'T00:00:00');
+  return d.toLocaleDateString('bn-IN', { day: 'numeric', month: 'short' });
+};
+
+const DEFAULT_DATA = { production: [], sales: [], settings: { upiId: '', farmerName: '' } };
+
+export default function MilkFarmerApp() {
+  const [data, setData] = useState(DEFAULT_DATA);
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState('home');
+  const [showProdForm, setShowProdForm] = useState(false);
+  const [showSaleForm, setShowSaleForm] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await window.storage.get('milk-farmer-data', false);
+        if (res && res.value) {
+          const parsed = JSON.parse(res.value);
+          setData({ ...DEFAULT_DATA, ...parsed, settings: { ...DEFAULT_DATA.settings, ...(parsed.settings || {}) } });
+        }
+      } catch (e) {
+        // no saved data yet
+      }
+      setLoaded(true);
+    })();
+  }, []);
+
+  const save = useCallback(async (next) => {
+    setData(next);
+    try {
+      const ok = await window.storage.set('milk-farmer-data', JSON.stringify(next), false);
+      if (!ok) console.error('save returned null');
+    } catch (e) {
+      console.error('save failed', e);
+    }
+  }, []);
+
+  const addProduction = (entry) => {
+    save({ ...data, production: [{ id: uid(), date: todayStr(), ...entry }, ...data.production] });
+    setShowProdForm(false);
+  };
+  const addSale = (entry) => {
+    save({ ...data, sales: [{ id: uid(), date: todayStr(), paid: false, ...entry }, ...data.sales] });
+    setShowSaleForm(false);
+  };
+  const deleteEntry = (kind, id) => save({ ...data, [kind]: data[kind].filter((e) => e.id !== id) });
+  const togglePaid = (id) => save({ ...data, sales: data.sales.map((s) => (s.id === id ? { ...s, paid: !s.paid } : s)) });
+  const updateSettings = (next) => save({ ...data, settings: { ...data.settings, ...next } });
+
+  const today = todayStr();
+  const todayProd = data.production.filter((p) => p.date === today).reduce((a, b) => a + Number(b.liters), 0);
+  const todayProdValue = data.production.filter((p) => p.date === today).reduce((a, b) => a + (Number(b.value) || 0), 0);
+  const todaySalesLiters = data.sales.filter((s) => s.date === today).reduce((a, b) => a + Number(b.liters), 0);
+  const todayRevenue = data.sales.filter((s) => s.date === today).reduce((a, b) => a + Number(b.amount), 0);
+  const totalDue = data.sales.filter((s) => !s.paid).reduce((a, b) => a + Number(b.amount), 0);
+  const pct = Math.min(100, Math.round((todayProd / TARGET) * 100));
+
+  const chartData = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const ds = d.toISOString().slice(0, 10);
+    return {
+      label: `${d.getDate()}/${d.getMonth() + 1}`,
+      উৎপাদন: data.production.filter((p) => p.date === ds).reduce((a, b) => a + Number(b.liters), 0),
+      বিক্রয়: data.sales.filter((s) => s.date === ds).reduce((a, b) => a + Number(b.liters), 0),
+    };
+  });
+
+  const customerMap = {};
+  data.sales.forEach((s) => {
+    if (!customerMap[s.customer]) customerMap[s.customer] = { name: s.customer, liters: 0, due: 0, spent: 0, phone: s.phone || '' };
+    customerMap[s.customer].liters += Number(s.liters);
+    customerMap[s.customer].spent += Number(s.amount);
+    if (!s.paid) customerMap[s.customer].due += Number(s.amount);
+    if (s.phone) customerMap[s.customer].phone = s.phone;
+  });
+  const customerList = Object.values(customerMap).sort((a, b) => b.due - a.due);
+
+  if (!loaded) {
+    return (
+      <div className="min-h-[600px] flex items-center justify-center" style={{ background: '#EDE9DD' }}>
+        <div className="text-center">
+          <div
+            className="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-3"
+            style={{ borderColor: COLORS.accent, borderTopColor: 'transparent' }}
+          />
+          <p style={{ color: COLORS.primary, fontFamily: "'Noto Sans Bengali', sans-serif" }}>লোড হচ্ছে...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="min-h-[600px] flex items-center justify-center py-6"
+      style={{ background: '#EDE9DD', fontFamily: "'Noto Sans Bengali', sans-serif" }}
+    >
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700&display=swap');`}</style>
+      <div
+        className="relative w-full max-w-[400px] h-[800px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col"
+        style={{ background: COLORS.bg, border: '8px solid #16281E' }}
+      >
+        <div className="px-5 pt-6 pb-5 rounded-b-[2rem] shrink-0" style={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryLight})` }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-white text-2xl font-bold" style={{ fontFamily: "'Noto Serif Bengali', serif" }}>
+                মিল্ক ফার্মার
+              </h1>
+              <p className="text-sm mt-0.5" style={{ color: COLORS.accent }}>
+                {new Date().toLocaleDateString('bn-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
+            </div>
+            <div className="w-11 h-11 rounded-full flex items-center justify-center" style={{ background: COLORS.accent }}>
+              <Droplet size={22} color={COLORS.primary} fill={COLORS.primary} />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 pb-24 pt-4" style={{ color: COLORS.text }}>
+          {tab === 'home' && (
+            <HomeTab
+              todayProd={todayProd}
+              todayProdValue={todayProdValue}
+              todaySalesLiters={todaySalesLiters}
+              todayRevenue={todayRevenue}
+              totalDue={totalDue}
+              pct={pct}
+              chartData={chartData}
+              settings={data.settings}
+              onSaveSettings={updateSettings}
+              onQuickProd={() => { setTab('production'); setShowProdForm(true); }}
+              onQuickSale={() => { setTab('sales'); setShowSaleForm(true); }}
+            />
+          )}
+          {tab === 'production' && (
+            <ProductionTab
+              entries={data.production}
+              onDelete={(id) => deleteEntry('production', id)}
+              showForm={showProdForm}
+              setShowForm={setShowProdForm}
+              onAdd={addProduction}
+            />
+          )}
+          {tab === 'sales' && (
+            <SalesTab
+              entries={data.sales}
+              onDelete={(id) => deleteEntry('sales', id)}
+              onTogglePaid={togglePaid}
+              showForm={showSaleForm}
+              setShowForm={setShowSaleForm}
+              onAdd={addSale}
+              knownCustomers={customerList.map((c) => c.name)}
+            />
+          )}
+          {tab === 'customers' && <CustomersTab customers={customerList} sales={data.sales} settings={data.settings} />}
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-around py-3 px-2 border-t shrink-0" style={{ background: COLORS.card, borderColor: COLORS.line }}>
+          <NavBtn icon={Home} label="হোম" active={tab === 'home'} onClick={() => setTab('home')} />
+          <NavBtn icon={Droplet} label="উৎপাদন" active={tab === 'production'} onClick={() => setTab('production')} />
+          <NavBtn icon={Wallet} label="বিক্রয়" active={tab === 'sales'} onClick={() => setTab('sales')} />
+          <NavBtn icon={Users} label="গ্রাহক" active={tab === 'customers'} onClick={() => setTab('customers')} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NavBtn({ icon: Icon, label, active, onClick }) {
+  return (
+    <button onClick={onClick} className="flex flex-col items-center gap-1 px-3 py-1 rounded-xl">
+      <Icon size={20} color={active ? COLORS.primary : COLORS.muted} strokeWidth={active ? 2.2 : 1.8} />
+      <span className="text-[10px] font-medium" style={{ color: active ? COLORS.primary : COLORS.muted }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function StatCard({ label, value, unit, color }) {
+  return (
+    <div className="rounded-2xl p-3 flex-1" style={{ background: COLORS.card, border: `1px solid ${COLORS.line}` }}>
+      <p className="text-[11px]" style={{ color: COLORS.muted }}>{label}</p>
+      <p className="text-lg font-bold mt-0.5" style={{ color: color || COLORS.primary }}>
+        {value} <span className="text-[11px] font-normal">{unit}</span>
+      </p>
+    </div>
+  );
+}
+
+function HomeTab({ todayProd, todayProdValue, todaySalesLiters, todayRevenue, totalDue, pct, chartData, settings, onSaveSettings, onQuickProd, onQuickSale }) {
+  const [showSettings, setShowSettings] = useState(false);
+  const [upiId, setUpiId] = useState(settings.upiId);
+  const [farmerName, setFarmerName] = useState(settings.farmerName);
+
+  const saveSettings = () => {
+    onSaveSettings({ upiId: upiId.trim(), farmerName: farmerName.trim() });
+    setShowSettings(false);
+  };
+
+  const circumference = 2 * Math.PI * 50;
+  const offset = circumference - (pct / 100) * circumference;
+  return (
+    <div className="space-y-4">
+      <div className="rounded-3xl p-5 flex items-center gap-5" style={{ background: COLORS.card, border: `1px solid ${COLORS.line}` }}>
+        <div className="relative w-28 h-28 shrink-0">
+          <svg width="112" height="112" viewBox="0 0 120 120">
+            <defs>
+              <linearGradient id="milkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={COLORS.accent} />
+                <stop offset="100%" stopColor={COLORS.primaryLight} />
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="50" fill="none" stroke="#F1ECDD" strokeWidth="10" />
+            <circle
+              cx="60" cy="60" r="50" fill="none" stroke="url(#milkGrad)" strokeWidth="10" strokeLinecap="round"
+              strokeDasharray={circumference} strokeDashoffset={offset} transform="rotate(-90 60 60)"
+              style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-bold" style={{ color: COLORS.primary }}>{toBn(todayProd)}</span>
+            <span className="text-[10px]" style={{ color: COLORS.muted }}>লিটার</span>
+          </div>
+        </div>
+        <div>
+          <p className="text-sm font-semibold" style={{ color: COLORS.primary }}>আজকের উৎপাদন</p>
+          <p className="text-xs mt-1" style={{ color: COLORS.muted }}>
+            লক্ষ্যমাত্রা {toBn(TARGET)} লিটারের {toBn(pct)}%
+          </p>
+          {todayProdValue > 0 && (
+            <p className="text-xs mt-1 font-semibold" style={{ color: COLORS.clay }}>উৎপাদন মূল্য: ৳{toBn(todayProdValue)}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <StatCard label="আজকের বিক্রি" value={toBn(todaySalesLiters)} unit="লি." />
+        <StatCard label="আজকের আয়" value={`৳${toBn(todayRevenue)}`} unit="" color={COLORS.clay} />
+      </div>
+      <StatCard label="মোট বকেয়া" value={`৳${toBn(totalDue)}`} unit="" color={totalDue > 0 ? COLORS.due : COLORS.primary} />
+
+      <div className="flex gap-3">
+        <button onClick={onQuickProd} className="flex-1 rounded-2xl py-3 flex items-center justify-center gap-2 text-white text-sm font-semibold" style={{ background: COLORS.primary }}>
+          <Plus size={16} /> উৎপাদন যোগ করুন
+        </button>
+        <button onClick={onQuickSale} className="flex-1 rounded-2xl py-3 flex items-center justify-center gap-2 text-white text-sm font-semibold" style={{ background: COLORS.accent }}>
+          <Plus size={16} /> বিক্রয় যোগ করুন
+        </button>
+      </div>
+
+      <div className="rounded-2xl p-4" style={{ background: COLORS.card, border: `1px solid ${COLORS.line}` }}>
+        <p className="text-sm font-semibold mb-2" style={{ color: COLORS.primary }}>গত ৭ দিন</p>
+        <div style={{ width: '100%', height: 160 }}>
+          <ResponsiveContainer>
+            <BarChart data={chartData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: COLORS.muted }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: COLORS.muted }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, fontFamily: "'Noto Sans Bengali', sans-serif" }} />
+              <Bar dataKey="উৎপাদন" fill={COLORS.primaryLight} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="বিক্রয়" fill={COLORS.accent} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="rounded-2xl p-4" style={{ background: COLORS.card, border: `1px solid ${COLORS.line}` }}>
+        <button onClick={() => setShowSettings(!showSettings)} className="w-full flex items-center justify-between">
+          <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: COLORS.primary }}>
+            <Settings size={15} /> পেমেন্ট QR সেটিংস (UPI)
+          </span>
+          <span className="text-xs" style={{ color: COLORS.muted }}>{settings.upiId ? 'সেট করা আছে' : 'সেট করুন'}</span>
+        </button>
+        {showSettings && (
+          <div className="mt-3 space-y-2">
+            <p className="text-[11px]" style={{ color: COLORS.muted }}>
+              আপনার UPI আইডি দিলে গ্রাহকের রিপোর্টে বকেয়া টাকা পরিশোধের QR কোড যোগ হবে
+            </p>
+            <input
+              type="text" placeholder="আপনার নাম (QR এ দেখাবে)" value={farmerName} onChange={(e) => setFarmerName(e.target.value)}
+              className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ border: `1px solid ${COLORS.line}` }}
+            />
+            <input
+              type="text" placeholder="UPI আইডি (যেমন 9876543210@upi)" value={upiId} onChange={(e) => setUpiId(e.target.value)}
+              className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ border: `1px solid ${COLORS.line}` }}
+            />
+            <button onClick={saveSettings} className="w-full rounded-xl py-2.5 text-white text-sm font-semibold" style={{ background: COLORS.primary }}>
+              সেভ করুন
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({ title, onAdd, showForm }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <h2 className="text-base font-bold" style={{ color: COLORS.primary, fontFamily: "'Noto Serif Bengali', serif" }}>{title}</h2>
+      <button onClick={onAdd} className="w-9 h-9 rounded-full flex items-center justify-center text-white" style={{ background: showForm ? COLORS.due : COLORS.primary }}>
+        {showForm ? <X size={18} /> : <Plus size={18} />}
+      </button>
+    </div>
+  );
+}
+
+function ProductionTab({ entries, onDelete, showForm, setShowForm, onAdd }) {
+  const [session, setSession] = useState('সকাল');
+  const [liters, setLiters] = useState('');
+  const [rate, setRate] = useState('40');
+  const [note, setNote] = useState('');
+
+  const value = liters && rate ? Math.round(Number(liters) * Number(rate)) : 0;
+
+  const submit = () => {
+    if (!liters || Number(liters) <= 0) return;
+    onAdd({ session, liters: Number(liters), rate: Number(rate) || 0, value, note });
+    setLiters(''); setNote('');
+  };
+
+  const monthTotal = entries
+    .filter((e) => e.date.slice(0, 7) === todayStr().slice(0, 7))
+    .reduce((a, b) => a + Number(b.liters), 0);
+  const monthValue = entries
+    .filter((e) => e.date.slice(0, 7) === todayStr().slice(0, 7))
+    .reduce((a, b) => a + (Number(b.value) || 0), 0);
+
+  return (
+    <div>
+      <SectionHeader title="দুধ উৎপাদন" onAdd={() => setShowForm(!showForm)} showForm={showForm} />
+      <div className="rounded-2xl p-3 mb-3 text-sm" style={{ background: '#F1ECDD', color: COLORS.primary }}>
+        এই মাসে মোট উৎপাদন: <b>{toBn(monthTotal)} লিটার</b> · মূল্য: <b>৳{toBn(monthValue)}</b>
+      </div>
+
+      {showForm && (
+        <div className="rounded-2xl p-4 mb-4 space-y-3" style={{ background: COLORS.card, border: `1px solid ${COLORS.line}` }}>
+          <div className="flex gap-2">
+            {['সকাল', 'সন্ধ্যা'].map((s) => (
+              <button
+                key={s} onClick={() => setSession(s)}
+                className="flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-sm font-medium"
+                style={{ background: session === s ? COLORS.primary : '#F1ECDD', color: session === s ? '#fff' : COLORS.text }}
+              >
+                {s === 'সকাল' ? <Sun size={14} /> : <Moon size={14} />} {s}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="number" inputMode="decimal" placeholder="লিটার (যেমন ৫.৫)" value={liters}
+              onChange={(e) => setLiters(e.target.value)}
+              className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ border: `1px solid ${COLORS.line}` }}
+            />
+            <input
+              type="number" inputMode="decimal" placeholder="৳/লিটার" value={rate}
+              onChange={(e) => setRate(e.target.value)}
+              className="flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={{ border: `1px solid ${COLORS.line}` }}
+            />
+          </div>
+          <p className="text-sm" style={{ color: COLORS.clay }}>উৎপাদন মূল্য: <b>৳{toBn(value)}</b></p>
+          <input
+            type="text" placeholder="নোট (ঐচ্ছিক)" value={note} onChange={(e) => setNote(e.target.value)}
+            className="w-full rounded-xl px-3 py-2 text-sm outline-none" style={{ border: `1px solid ${COLORS.line}` }}
+          />
+          <button onClick={submit} className="w-full rounded-xl py-2.5 text-white text-sm font-semibold" style={{ background: COLORS.primary }}>
+            যোগ করুন
+          </button>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {entries.length === 0 && <EmptyState text="এখনও কোনো উৎপাদনের হিসাব নেই" />}
+        {entries.map((e) => (
+          <div key={e.id} className="flex items-center justify-between rounded-2xl p-3" style={{ background: COLORS.card, border: `1px solid ${COLORS.line}` }}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: '#F1ECDD' }}>
+                {e.session === 'সকাল' ? <Sun size={16} color={COLORS.accent} /> : <Moon size={16} color={COLORS.clay} />}
+              </div>
+              <div>
+                <p className="text-sm font-semibold">
+                  {toBn(e.liters)} লিটার <span className="font-normal text-xs" style={{ color: COLORS.muted }}>· {e.session}</span>
+                  {e.value ? <span className="font-normal text-xs" style={{ color: COLORS.clay }}> · ৳{toBn(e.value)}</span> : null}
+                </p>
+                <p className="text-[11px]" style={{ color: COLORS.muted }
