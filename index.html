@@ -358,32 +358,4 @@
 
                 <div className="flex gap-2 mt-3 pt-3 border-t">
                   {c.phone && (
-                    <a href={buildWaLink(c.phone, `প্রিয় ${c.name}, আপনার বকেয়া বিল ₹${toBnINR(c.due)}।`)} target="_blank" className="flex-1 py-1.5 rounded-xl bg-green-50 text-green-700 text-xs font-medium text-center">📱 হোয়াটসঅ্যাপ</a>
-                  )}
-                  {settings.upiId && c.due > 0 && (
-                    <button onClick={() => setQrModal({ name: c.name, amount: c.due })} className="flex-1 py-1.5 rounded-xl bg-amber-50 text-amber-700 text-xs font-medium">📷 QR কোড</button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {qrModal && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-3xl p-5 w-full max-w-xs text-center space-y-4">
-                <h3 className="font-bold text-sm">{qrModal.name}-এর QR কোড</h3>
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${settings.upiId}&pn=${encodeURIComponent(settings.farmerName || 'Milk Farmer')}&am=${qrModal.amount}&cu=INR`)}`} alt="QR" className="w-44 h-44 mx-auto" />
-                <p className="text-xs text-gray-500">স্ক্যান করে ₹{toBnINR(qrModal.amount)} প্রদান করুন</p>
-                <button onClick={() => setQrModal(null)} className="w-full py-2 bg-gray-200 text-gray-700 rounded-xl text-xs font-bold">বন্ধ করুন</button>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
-</body>
-</html>
+                    <a href={buildWaLink(c.phone, `প্রিয় ${c
