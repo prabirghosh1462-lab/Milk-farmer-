@@ -1,0 +1,418 @@
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AP Milk Parches & Sels</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,"Noto Sans Bengali",sans-serif}
+body{margin:0;background:#eef4f8;color:#172033}
+.app{max-width:760px;margin:auto;padding:12px}
+header{background:linear-gradient(135deg,#075985,#0ea5e9);color:#fff;border-radius:18px;padding:20px;text-align:center;box-shadow:0 5px 16px #0002}
+header h1{margin:0;font-size:25px} header p{margin:6px 0 0}
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:12px 0}
+nav button{padding:10px 4px;border:0;border-radius:10px;background:#fff;color:#075985;font-weight:bold}
+nav button.active{background:#075985;color:#fff}
+.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:0 2px 10px #0001}
+h2{margin:0 0 14px;color:#075985;font-size:19px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-weight:bold;font-size:13px;margin-bottom:5px}
+input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font-size:15px}
+button{cursor:pointer}
+.primary{width:100%;padding:12px;border:0;border-radius:9px;background:#0284c7;color:#fff;font-size:16px;font-weight:bold;margin-top:8px}
+.secondary{padding:10px;border:0;border-radius:8px;background:#64748b;color:#fff}
+.danger{background:#dc2626;color:#fff}.success{background:#16a34a;color:#fff}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.stat{padding:13px;border-radius:11px;text-align:center;font-weight:bold}.stat b{display:block;font-size:18px;margin-top:4px}
+.blue{background:#e0f2fe;color:#075985}.green{background:#dcfce7;color:#166534}.red{background:#fee2e2;color:#991b1b}.yellow{background:#fef3c7;color:#92400e}
+.table{overflow:auto}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #d1d5db;padding:7px;text-align:center;white-space:nowrap}th{background:#075985;color:#fff}
+.smallbtn{border:0;border-radius:6px;padding:5px 7px;color:#fff;margin:1px}.edit{background:#f59e0b}.del{background:#dc2626}
+.notice{padding:10px;background:#f8fafc;border-radius:9px;color:#475569;font-size:13px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}nav{grid-template-columns:repeat(4,1fr)}nav button{font-size:11px}.cards{grid-template-columns:1fr 1fr}}
+@media print{
+@page{size:A4;margin:12mm}
+*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+body{background:#fff!important;color:#111!important}
+.app{max-width:none!important;padding:0!important}
+header{background:none!important;color:#000!important;box-shadow:none!important;border:1px solid #999!important}
+nav,.no-print,button{display:none!important}
+.page{display:none!important}
+#reports{display:block!important}
+#reports .card{display:block!important;box-shadow:none!important;border:1px solid #bbb!important;margin-bottom:10px!important}
+#reports .table{overflow:visible!important}
+table{width:100%!important;font-size:11px!important}
+th{background:#075985!important;color:#fff!important}
+th:last-child,td:last-child{display:none!important}
+.cards{grid-template-columns:repeat(4,1fr)!important}
+.stat{border:1px solid #aaa!important}
+h2{color:#075985!important}
+.print-title{display:block!important}
+}
+</style>
+
+<style id="reliable-print-css">
+@media print{
+  @page{size:A4;margin:10mm}
+  html,body{background:#fff!important}
+  #temporary-print-page{display:block!important;width:100%!important}
+  #temporary-print-page .card{box-shadow:none!important;border:1px solid #bbb!important;margin-bottom:10px!important}
+  #temporary-print-page .table{overflow:visible!important}
+  #temporary-print-page table{width:100%!important;border-collapse:collapse!important;font-size:10px!important}
+  #temporary-print-page th{background:#075985!important;color:#fff!important}
+  #temporary-print-page th:last-child,#temporary-print-page td:last-child{display:none!important}
+  #temporary-print-page .cards{display:grid!important;grid-template-columns:repeat(4,1fr)!important}
+  #temporary-print-page button{display:none!important}
+}
+</style>
+
+</head>
+<body>
+<div class="app">
+<header><h1>🥛 AP Milk Parches & Sales</h1><p>Milk Collection • Billing • Due • Reports</p></header>
+
+<nav class="no-print">
+<button class="active" onclick="tab('dashboard',this)">🏠 হোম</button>
+<button onclick="tab('entry',this)">🥛 এন্ট্রি</button>
+<button onclick="tab('farmers',this)">👤 খামারী</button>
+<button onclick="tab('reports',this)">📊 রিপোর্ট</button>
+</nav>
+
+<section id="dashboard" class="page active">
+<div class="card"><h2>📊 আজকের সারাংশ</h2><div class="cards">
+<div class="stat blue">ক্রয়<b id="dLit">0 L</b></div>
+<div class="stat green">বিক্রয়<b id="dSale">₹0</b></div>
+<div class="stat red">বাকি<b id="dDue">₹0</b></div>
+<div class="stat yellow">খামারী<b id="dFarm">0</b></div>
+</div></div>
+<div class="card"><h2>⚡ দ্রুত কাজ</h2>
+<div class="grid"><button class="primary" onclick="go('entry')">🥛 দুধ এন্ট্রি</button><button class="primary" onclick="go('reports')">📊 রিপোর্ট</button></div>
+</div>
+</section>
+
+<section id="entry" class="page">
+<div class="card">
+<h2>🥛 দুধের এন্ট্রি</h2>
+<div class="grid">
+<div><label>তারিখ</label><input id="date" type="date"></div>
+<div><label>সেশন</label><select id="session"><option>সকাল</option><option>সন্ধ্যা</option></select></div>
+<div><label>খামারীর নাম</label><select id="farmer"><option value="">নতুন/নাম নির্বাচন</option></select></div>
+<div><label>লেনদেন</label><select id="type"><option>ক্রয়</option><option>বিক্রয়</option></select></div>
+<div><label>দুধ (লিটার)</label><input id="liter" type="number" step=".01" placeholder="0"></div>
+<div><label>প্রতি লিটার দাম</label><input id="rate" type="number" step=".01" placeholder="0"></div>
+<div><label>ফ্যাট</label><input id="fat" type="number" step=".01" placeholder="ঐচ্ছিক"></div>
+<div><label>জমা টাকা</label><input id="paid" type="number" step=".01" value="0"></div>
+</div>
+<div style="margin-top:10px"><label>নাম না থাকলে এখানে লিখুন</label><input id="newFarmer" placeholder="খামারী/গ্রাহীর নাম"></div>
+<button class="primary" onclick="saveEntry()">💾 সেভ করুন</button>
+</div>
+</section>
+
+<section id="farmers" class="page">
+<div class="card">
+<h2>👤 খামারী / গ্রাহক</h2>
+<div class="grid"><input id="fname" placeholder="নাম"><input id="fphone" placeholder="মোবাইল নম্বর"></div>
+<button class="primary" onclick="addFarmer()">➕ যোগ করুন</button>
+</div>
+<div class="card"><div class="print-title" style="display:none;text-align:center;margin-bottom:10px"><strong>AP দুগ্ধ ভান্ডার</strong><br><span>দুধ ক্রয়-বিক্রয় রিপোর্ট</span></div><div class="table"><table><thead><tr><th>নাম</th><th>মোবাইল</th><th>অ্যাকশন</th></tr></thead><tbody id="farmerList"></tbody></table></div></div>
+
+
+<div class="card" style="margin-top:15px">
+<h2>📊 খামারীভিত্তিক বিল রিপোর্ট</h2>
+<div class="grid">
+<div>
+<label>মাস</label>
+<input id="farmerReportMonth" type="month" onchange="renderFarmerBillingReport()">
+</div>
+<div>
+<label>লেনদেনের ধরন</label>
+<select id="farmerReportType" onchange="renderFarmerBillingReport()">
+<option value="ক্রয়">🥛 ক্রয় বিল</option>
+<option value="বিক্রয়">🛒 বিক্রয় বিল</option>
+<option value="সব">📋 সব</option>
+</select>
+</div>
+</div>
+
+<div class="table" style="margin-top:12px">
+<table>
+<thead>
+<tr>
+<th>খামারী / গ্রাহক</th>
+<th>লিটার</th>
+<th>মোট বিল</th>
+<th>জমা</th>
+<th>বাকি</th>
+</tr>
+</thead>
+<tbody id="farmerBillingList"></tbody>
+</table>
+</div>
+
+<div class="cards" style="margin-top:12px">
+<div class="stat blue">মোট লিটার<b id="frTotalLiter">0 L</b></div>
+<div class="stat green">মোট বিল<b id="frTotalBill">₹0</b></div>
+<div class="stat yellow">মোট জমা<b id="frTotalPaid">₹0</b></div>
+<div class="stat red">মোট বাকি<b id="frTotalDue">₹0</b></div>
+</div>
+
+<button class="primary" style="background:#25D366;margin-top:10px" onclick="shareFarmerBillingWhatsApp()">💬 খামারীভিত্তিক রিপোর্ট WhatsApp</button>
+</div>
+</section>
+
+<section id="reports" class="page">
+<div class="card no-print">
+<h2>📊 রিপোর্ট</h2>
+<div class="grid">
+<div><label>মাস</label><input id="month" type="month" onchange="renderReport()"></div>
+<div><label>নাম</label><select id="filterFarmer" onchange="renderReport()"><option value="">সবাই</option></select></div>
+</div>
+<div class="grid" style="margin-top:10px">
+<button class="primary" onclick="setReportMode('purchase')" style="background:#0284c7">🥛 শুধু ক্রয়</button>
+<button class="primary" onclick="setReportMode('sales')" style="background:#16a34a">🛒 শুধু বিক্রয়</button>
+</div>
+<button class="secondary" onclick="setReportMode('all')" style="width:100%;margin-top:8px">📋 ক্রয় + বিক্রয়</button>
+</div>
+<div class="card">
+<h2 id="reportTitle">🥛 ক্রয় রিপোর্ট</h2>
+<div class="cards">
+<div class="stat blue">লিটার<b id="rLit">0 L</b></div>
+<div class="stat green">মোট টাকা<b id="rAmt">₹0</b></div>
+<div class="stat red">বাকি<b id="rDue">₹0</b></div>
+<div class="stat yellow">এন্ট্রি<b id="rCount">0</b></div>
+</div></div>
+<div class="card">
+<div class="table"><table>
+<thead><tr><th>তারিখ</th><th>নাম</th><th>সেশন</th><th>L</th><th>ফ্যাট</th><th>দর</th><th>মোট</th><th>বাকি</th><th>অ্যাকশন</th></tr></thead>
+<tbody id="reportList"></tbody>
+</table></div>
+<div class="grid no-print" style="margin-top:10px">
+<button class="secondary" onclick="exportCSV()">📥 CSV/Excel</button>
+<button class="secondary" onclick="printReport()">🖨️ রিপোর্ট প্রিন্ট / PDF</button>
+</div>
+<div class="grid no-print" style="margin-top:10px">
+<button class="primary" style="background:#25D366" onclick="shareWhatsApp()">💬 WhatsApp রিপোর্ট</button>
+<button class="primary" style="background:#128C7E" onclick="sendBillWhatsApp()">🧾 WhatsApp বিল</button>
+</div>
+</div>
+</section>
+</div>
+
+<script>
+const KEY='ap_dugdha_vandar_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"farmers":[],"entries":[]}');
+let editId=null;
+const $=id=>document.getElementById(id);
+const today=new Date(); const iso=today.toISOString().slice(0,10);
+$('date').value=iso; $('month').value=iso.slice(0,7);
+
+function save(){localStorage.setItem(KEY,JSON.stringify(db));}
+function esc(str){return (str||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function tab(id,btn){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');renderAll();}
+function go(id){tab(id,document.querySelector('nav button:nth-child('+(id==='dashboard'?1:id==='entry'?2:id==='farmers'?3:4)+')'))}
+function money(n){return '₹'+Number(n||0).toFixed(2)}
+function addFarmer(){
+ let n=$('fname').value.trim(),p=$('fphone').value.trim(); if(!n)return alert('নাম দিন');
+ db.farmers.push({id:Date.now(),name:n,phone:p});save();$('fname').value='';$('fphone').value='';renderAll();alert('খামারী যোগ হয়েছে');
+}
+function deleteFarmer(id){if(confirm('মুছবেন?')){db.farmers=db.farmers.filter(x=>x.id!==id);save();renderAll()}}
+function saveEntry(){
+ let name=$('newFarmer').value.trim()||$('farmer').value, liter=+$('liter').value, rate=+$('rate').value, paid=+$('paid').value||0;
+ if(!name)return alert('খামারীর/গ্রাহকের নাম দিন'); if(!(liter>0))return alert('লিটার দিন'); if(!(rate>0))return alert('দাম দিন');
+ let total=liter*rate; if(paid>total)paid=total; let item={id:editId||Date.now(),date:$('date').value,session:$('session').value,name,type:$('type').value,liter,rate,fat:+$('fat').value||0,total,paid,due:total-paid};
+ if(editId)db.entries[db.entries.findIndex(x=>x.id===editId)]=item;else db.entries.push(item);
+ editId=null;save();clearEntry();renderAll();alert('এন্ট্রি সেভ হয়েছে');
+}
+function clearEntry(){ $('liter').value='';$('rate').value='';$('fat').value='';$('paid').value='0';$('newFarmer').value='';$('farmer').value='';}
+function editEntry(id){let x=db.entries.find(e=>e.id===id);if(!x)return;editId=id;tab('entry',document.querySelector('nav button:nth-child(2)'));$('date').value=x.date;$('session').value=x.session;$('type').value=x.type;$('liter').value=x.liter;$('rate').value=x.rate;$('fat').value=x.fat;$('paid').value=x.paid;$('farmer').value=x.name}
+function delEntry(id){if(confirm('এই এন্ট্রি মুছবেন?')){db.entries=db.entries.filter(x=>x.id!==id);save();renderAll()}}
+function renderAll(){renderFarmers();renderSelectors();renderDashboard();renderReport();renderFarmerBillingReport()}
+
+function renderFarmerBillingReport(){
+  const month=$('farmerReportMonth').value;
+  const type=$('farmerReportType').value;
+
+  const rows=db.farmers.map(f=>{
+    const entries=db.entries.filter(x=>
+      x.name===f.name &&
+      (!month||x.date.startsWith(month)) &&
+      (type==='সব'||x.type===type)
+    );
+    return {
+      name:f.name,
+      liter:entries.reduce((t,x)=>t+x.liter,0),
+      bill:entries.reduce((t,x)=>t+x.total,0),
+      paid:entries.reduce((t,x)=>t+x.paid,0),
+      due:entries.reduce((t,x)=>t+x.due,0)
+    };
+  }).filter(x=>x.liter>0||x.bill>0||x.paid>0||x.due>0);
+
+  $('farmerBillingList').innerHTML=rows.map(x=>`
+    <tr>
+      <td><b>${esc(x.name)}</b></td>
+      <td>${x.liter.toFixed(2)} L</td>
+      <td>${money(x.bill)}</td>
+      <td>${money(x.paid)}</td>
+      <td style="font-weight:bold">${money(x.due)}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="5">এই সময়ের কোনো বিল নেই</td></tr>';
+
+  $('frTotalLiter').textContent=rows.reduce((t,x)=>t+x.liter,0).toFixed(2)+' L';
+  $('frTotalBill').textContent=money(rows.reduce((t,x)=>t+x.bill,0));
+  $('frTotalPaid').textContent=money(rows.reduce((t,x)=>t+x.paid,0));
+  $('frTotalDue').textContent=money(rows.reduce((t,x)=>t+x.due,0));
+}
+
+function shareFarmerBillingWhatsApp(){
+  const month=$('farmerReportMonth').value;
+  const type=$('farmerReportType').value;
+  const rows=db.farmers.map(f=>{
+    const e=db.entries.filter(x=>x.name===f.name&&(!month||x.date.startsWith(month))&&(type==='সব'||x.type===type));
+    return {
+      name:f.name,
+      liter:e.reduce((t,x)=>t+x.liter,0),
+      bill:e.reduce((t,x)=>t+x.total,0),
+      paid:e.reduce((t,x)=>t+x.paid,0),
+      due:e.reduce((t,x)=>t+x.due,0)
+    };
+  }).filter(x=>x.bill||x.due||x.paid);
+
+  if(!rows.length){alert('এই সময়ের কোনো বিল নেই');return;}
+
+  let title=type==='ক্রয়'?'🥛 খামারীদের ক্রয় বিল রিপোর্ট':type==='বিক্রয়'?'🛒 গ্রাহকদের বিক্রয় বিল রিপোর্ট':'📋 খামারী/গ্রাহক বিল রিপোর্ট';
+  let text='🥛 *AP দুগ্ধ ভান্ডার*\n📊 *'+title+'*\n━━━━━━━━━━━━━━\n';
+  text+='📅 মাস: '+(month||'সব সময়')+'\n\n';
+  rows.forEach((x,i)=>{
+    text+=(i+1)+'. *'+x.name+'*\n';
+    text+=' 🥛 '+x.liter.toFixed(2)+' L | 💰 বিল ₹'+x.bill.toFixed(2)+' | ✅ জমা ₹'+x.paid.toFixed(2)+' | 🔴 বাকি ₹'+x.due.toFixed(2)+'\n';
+  });
+  text+='━━━━━━━━━━━━━━\n';
+  text+='মোট লিটার: '+rows.reduce((t,x)=>t+x.liter,0).toFixed(2)+' L\n';
+  text+='মোট বিল: ₹'+rows.reduce((t,x)=>t+x.bill,0).toFixed(2)+'\n';
+  text+='মোট জমা: ₹'+rows.reduce((t,x)=>t+x.paid,0).toFixed(2)+'\n';
+  text+='মোট বাকি: ₹'+rows.reduce((t,x)=>t+x.due,0).toFixed(2)+'\n';
+  text+='\n— AP দুগ্ধ ভান্ডার';
+
+  const url='https://wa.me/?text='+encodeURIComponent(text);
+  window.location.href=url;
+}
+
+function renderFarmers(){$('farmerList').innerHTML=db.farmers.map(f=>`<tr><td>${esc(f.name)}</td><td>${esc(f.phone||'')}</td><td><button class="smallbtn del" onclick="deleteFarmer(${f.id})">🗑️</button></td></tr>`).join('')||'<tr><td colspan="3">কোনো খামারী নেই</td></tr>'}
+function renderSelectors(){
+ let opts=db.farmers.map(f=>`<option value="${esc(f.name)}">${esc(f.name)}</option>`).join('');
+ $('farmer').innerHTML='<option value="">নাম নির্বাচন</option>'+opts;
+ let old=$('filterFarmer').value; $('filterFarmer').innerHTML='<option value="">সবাই</option>'+opts; $('filterFarmer').value=old;
+}
+function renderDashboard(){
+ let todayE=db.entries.filter(x=>x.date===iso),lit=todayE.reduce((s,x)=>s+(x.type==='ক্রয়'?+x.liter:0),0),sale=todayE.reduce((s,x)=>s+(x.type==='বিক্রয়'?+x.total:0),0),due=todayE.reduce((s,x)=>s+x.due,0);
+ $('dLit').textContent=lit.toFixed(2)+' L';$('dSale').textContent=money(sale);$('dDue').textContent=money(due);$('dFarm').textContent=db.farmers.length;
+}
+let reportMode='purchase';
+
+function setReportMode(mode){reportMode=mode;renderReport();}
+
+function getFilteredReport(){
+  const m=$('month').value, n=$('filterFarmer').value;
+  return db.entries.filter(x=>{
+    const monthOK=!m||x.date.startsWith(m);
+    const nameOK=!n||x.name===n;
+    const typeOK=reportMode==='all'||(reportMode==='purchase'?x.type==='ক্রয়':x.type==='বিক্রয়');
+    return monthOK&&nameOK&&typeOK;
+  }).sort((a,b)=>b.date.localeCompare(a.date));
+}
+
+function renderReport(){
+  const a=getFilteredReport();
+  $('reportTitle').textContent=reportMode==='purchase'?'🥛 ক্রয় রিপোর্ট':(reportMode==='sales'?'🛒 বিক্রয় রিপোর্ট':'📋 ক্রয় + বিক্রয় রিপোর্ট');
+  $('rLit').textContent=a.reduce((t,x)=>t+x.liter,0).toFixed(2)+' L';
+  $('rAmt').textContent=money(a.reduce((t,x)=>t+x.total,0));
+  $('rDue').textContent=money(a.reduce((t,x)=>t+x.due,0));
+  $('rCount').textContent=a.length;
+  $('reportList').innerHTML=a.map(x=>`<tr>
+<td>${x.date}</td><td>${esc(x.name)}</td><td>${x.session}</td><td>${x.liter.toFixed(2)}</td>
+<td>${x.fat||'-'}</td><td>${money(x.rate)}</td><td>${money(x.total)}</td><td>${x.due?money(x.due):'জমা'}</td>
+<td class="no-print"><button class="smallbtn edit" onclick="editEntry(${x.id})">✏️</button><button class="smallbtn del" onclick="delEntry(${x.id})">🗑️</button></td>
+</tr>`).join('')||'<tr><td colspan="9">এই রিপোর্টে কোনো তথ্য নেই</td></tr>';
+}
+
+function getReportTitle(){
+  return reportMode==='purchase'?'🥛 ক্রয় রিপোর্ট':(reportMode==='sales'?'🛒 বিক্রয় রিপোর্ট':'📋 ক্রয় + বিক্রয় রিপোর্ট');
+}
+
+function makeWhatsAppText(a,title){
+  const m=$('month').value, n=$('filterFarmer').value;
+  const liters=a.reduce((t,x)=>t+x.liter,0);
+  const amount=a.reduce((t,x)=>t+x.total,0);
+  const paid=a.reduce((t,x)=>t+x.paid,0);
+  const due=a.reduce((t,x)=>t+x.due,0);
+
+  let text='🥛 *AP দুগ্ধ ভান্ডার*\n';
+  text+='📄 *'+title+'*\n';
+  text+='━━━━━━━━━━━━━━\n';
+  text+='📅 মাস: '+(m||'সব সময়')+'\n';
+  text+='👤 নাম: '+(n||'সবাই')+'\n';
+  text+='🥛 মোট দুধ: '+liters.toFixed(2)+' L\n';
+  text+='💰 মোট বিল: ₹'+amount.toFixed(2)+'\n';
+  text+='✅ জমা: ₹'+paid.toFixed(2)+'\n';
+  text+='🔴 বাকি: ₹'+due.toFixed(2)+'\n';
+  text+='━━━━━━━━━━━━━━\n';
+  text+='📋 *বিস্তারিত:*\n';
+  a.forEach((x,i)=>{
+    text+=(i+1)+'. '+x.date+' | '+x.session+' | '+x.liter.toFixed(2)+' L × ₹'+Number(x.rate).toFixed(2)+' = ₹'+Number(x.total).toFixed(2)+'\n';
+  });
+  text+='━━━━━━━━━━━━━━\n';
+  text+='ধন্যবাদ।\n— AP দুগ্ধ ভান্ডার';
+  return text;
+}
+
+function getWhatsAppUrl(text,phone){
+  let p=(phone||'').replace(/\D/g,'');
+  if(p.length===10) p='91'+p;
+  if(p && p.length>=11) return 'https://wa.me/'+p+'?text='+encodeURIComponent(text);
+  return 'https://wa.me/?text='+encodeURIComponent(text);
+}
+
+function openWhatsApp(text,phone){
+  const url=getWhatsAppUrl(text,phone);
+  window.location.href=url;
+}
+
+function shareWhatsApp(){
+  const a=getFilteredReport();
+  if(!a.length){alert('এই রিপোর্টে কোনো তথ্য নেই');return;}
+  const text=makeWhatsAppText(a,getReportTitle());
+  openWhatsApp(text,'');
+}
+
+function sendBillWhatsApp(){
+  const name=$('filterFarmer').value;
+  if(!name){
+    alert('আগে নাম থেকে একজন খামারী/গ্রাহক নির্বাচন করুন।');
+    return;
+  }
+
+  const a=getFilteredReport();
+  if(!a.length){
+    alert('এই নামের জন্য নির্বাচিত রিপোর্টে কোনো বিল নেই।');
+    return;
+  }
+
+  const farmer=db.farmers.find(f=>f.name===name);
+  const phone=farmer ? farmer.phone : '';
+  const text=makeWhatsAppText(a,'🧾 বিল / হিসাব');
+
+  if(!phone){
+    const ok=confirm('এই খামারীর মোবাইল নম্বর সেভ করা নেই। WhatsApp খুলবে, তারপর আপনি কন্টাক্ট নির্বাচন করতে পারবেন।');
+    if(!ok)return;
+  }
+
+  openWhatsApp(text,phone);
+}
+
+function exportCSV(){
+  const a=getFilteredReport();
+  if(!a.length){alert('কোনো তথ্য নেই');return;}
+  let csv='\uFEFFতারিখ,নাম,সেশন,টাইপ,লিটার,ফ্যাট,দর,মোট,জমা,বাকি\n';
+  a.forEach(x=>{
+    csv+=`"${x.date}","${x.name}","$
