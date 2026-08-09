@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>দুধ কেনাবেচার হিসাব</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f7f6; }
+    .container { max-width: 520px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #333; }
+    h3 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 6px; margin-top: 30px; }
+    label { font-weight: bold; margin-top: 10px; display: block; }
+    input, select, button { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 15px; }
+    button { font-weight: bold; border: none; margin-top: 12px; cursor: pointer; color: white; }
+    .btn-green { background-color: #28a745; }
+    .btn-green:hover { background-color: #218838; }
+    .btn-red { background-color: #dc3545; }
+    .btn-red:hover { background-color: #c82333; }
+    .btn-blue { background-color: #007bff; }
+    .btn-blue:hover { background-color: #0069d9; }
+    .btn-whatsapp { background-color: #25D366; }
+    .btn-whatsapp:hover { background-color: #1ebc59; }
+    .btn-pdf { background-color: #6c757d; }
+    .btn-pdf:hover { background-color: #5a6268; }
+    .row2 { display: flex; gap: 10px; }
+    .row2 > div { flex: 1; }
+    table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+    th { background-color: #007bff; color: white; }
+    .summary { margin-top: 15px; padding: 12px; background-color: #eef6ff; border-radius: 6px; }
+    .summary p { margin: 4px 0; font-weight: bold; }
+    .summary .purchase { color: #dc3545; }
+    .summary .sale { color: #28a745; }
+    .del-btn { background: none !important; border: none; color: #dc3545; font-weight: bold; cursor: pointer; padding: 0 !important; margin: 0 !important; width: auto !important; }
+    .cust-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 4px; border-bottom: 1px solid #eee; }
+    .cust-item span { font-size: 14px; }
+    .cust-item .del-btn { font-size: 16px; }
+    small { color: #777; }
+
+    /* প্রিন্ট / PDF বিল */
+    #printInvoice { display: none; }
+    @media print {
+        body * { visibility: hidden; }
+        #printInvoice, #printInvoice * { visibility: visible; }
+        #printInvoice { display: block !important; position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+        #printInvoice table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        #printInvoice th, #printInvoice td { border: 1px solid #333; padding: 6px; text-align: center; }
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h2>🥛 দুধ কেনাবেচার রেজিস্টার</h2>
+
+    <!-- খামারী/গ্রাহক ব্যবস্থাপনা -->
+    <h3>👤 খামারী / গ্রাহক তালিকা</h3>
+    <div class="row2">
+        <div>
+            <label>নাম:</label>
+            <input type="text" id="custName" placeholder="নাম লিখুন">
+        </div>
+        <div>
+            <label>মোবাইল নম্বর:</label>
+            <input type="tel" id="custPhone" placeholder="যেমন: 8801XXXXXXXXX">
+        </div>
+    </div>
+    <button class="btn-blue" onclick="addCustomer()">➕ খামারী/গ্রাহক যোগ করুন</button>
+    <small>WhatsApp-এ বিল পাঠাতে মোবাইল নম্বরের আগে দেশের কোড দিন (যেমন 880 বা 91), + বা ০ ছাড়া।</small>
+    <div id="customerList"></div>
+
+    <!-- এন্ট্রি ফর্ম -->
+    <h3>📝 নতুন এন্ট্রি</h3>
+    <label>তারিখ:</label>
+    <input type="date" id="entryDate">
+    <label>লেনদেনের ধরন:</label>
+    <select id="type">
+        <option value="ক্রয় (Purchase)">ক্রয় (Purchase)</option>
+        <option value="বিক্রয় (Sale)">বিক্রয় (Sale)</option>
+    </select>
+    <label>গ্রাহক/খামারীর নাম:</label>
+    <input type="text" id="name" list="customerNames" placeholder="নাম লিখুন বা তালিকা থেকে বাছুন">
+    <datalist id="customerNames"></datalist>
+    <label>দুধের পরিমাণ (লিটার):</label>
+    <input type="number" id="liter" placeholder="০" oninput="calculateTotal()">
+    <label>প্রতি লিটারের দাম (টাকা):</label>
+    <input type="number" id="rate" placeholder="০" oninput="calculateTotal()">
+    <label>মোট টাকা:</label>
+    <input type="number" id="total" placeholder="০" readonly>
+    <button class="btn-green" onclick="addRecord()">এন্ট্রি সেভ করুন</button>
+    <button class="btn-red" onclick="clearAll()">সব এন্ট্রি মুছে ফেলুন</button>
+
+    <!-- বিল পাঠানো -->
+    <h3>🧾 বিল তৈরি করুন</h3>
+    <label>খামারী/গ্রাহক বাছুন:</label>
+    <select id="billCustomer"></select>
+    <button class="btn-whatsapp" onclick="sendWhatsAppBill()">📲 WhatsApp-এ বিল পাঠান</button>
+    <button class="btn-pdf" onclick="printPdfBill()">📄 PDF বিল (প্রিন্ট/সেভ)</button>
+
+    <div class="summary" id="summary"></div>
+
+    <h3>📒 আজকের হিসাব</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>তারিখ</th>
+                <th>ধরন</th>
+                <th>নাম</th>
+                <th>লিটার</th>
+                <th>মোট (₹)</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="recordList"></tbody>
+    </table>
+</div>
+
+<!-- প্রিন্ট/PDF বিলের লে-আউট (স্ক্রিনে দেখা যাবে না, শুধু প্রিন্টে দেখা যাবে) -->
+<div id="printInvoice">
+    <h2>🥛 দুধ কেনাবেচার বিল</h2>
+    <p><strong>নাম:</strong> <span id="pName"></span></p>
+    <p><strong>মোবাইল:</strong> <span id="pPhone"></span></p>
+    <p><strong>তারিখ:</strong> <span id="pDate"></span></p>
+    <table>
+        <thead>
+            <tr><th>তারিখ</th><th>ধরন</th><th>লিটার</th><th>দর</th><th>মোট (₹)</th></tr>
+        </thead>
+        <tbody id="pTable"></tbody>
+    </table>
+    <p style="margin-top:15px;"><strong>মোট ক্রয়:</strong> ₹<span id="pPurchase"></span></p>
+    <p><strong>মোট বিক্রয়:</strong> ₹<span id="pSale"></span></p>
+    <p><strong>নিট (বিক্রয় - ক্রয়):</strong> ₹<span id="pNet"></span></p>
+</div>
+
+<script>
+    const REC_KEY = 'dudh_hisab_records';
+    const CUST_KEY = 'dudh_hisab_customers';
+
+    // ---------- স্টোরেজ ----------
+    function loadRecords() {
+        try { return JSON.parse(localStorage.getItem(REC_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveRecords(r) { localStorage.setItem(REC_KEY, JSON.stringify(r)); }
+
+    function loadCustomers() {
+        try { return JSON.parse(localStorage.getItem(CUST_KEY)) || []; } catch(e) { return []; }
+    }
+    function saveCustomers(c) { localStorage.setItem(CUST_KEY, JSON.stringify(c)); }
+
+    // ---------- খামারী/গ্রাহক ----------
+    function addCustomer() {
+        let name = document.getElementById('custName').value.trim();
+        let phone = document.getElementById('custPhone').value.trim().replace(/[^0-9]/g, '');
+        if (!name) { alert('নাম লিখুন!'); return; }
+
+        let customers = loadCustomers();
+        if (customers.some(c => c.name === name)) {
+            alert('এই নামে একজন খামারী/গ্রাহক আগে থেকেই তালিকায় আছে।');
+            return;
+        }
+        customers.push({ name, phone });
+        saveCustomers(customers);
+        document.getElementById('custName').value = '';
+        document.getElementById('custPhone').value = '';
+        renderCustomers();
+    }
+
+    function deleteCustomer(index) {
+        if (!confirm('এই খামারী/গ্রাহক তালিকা থেকে মুছে ফেলতে চান?')) return;
+        let customers = loadCustomers();
+        customers.splice(index, 1);
+        saveCustomers(customers);
+        renderCustomers();
+    }
+
+    function renderCustomers() {
+        let customers = loadCustomers();
+        let list = document.getElementById('customerList');
+        list.innerHTML = '';
+        customers.forEach((c, i) => {
+            let div = document.createElement('div');
+            div.className = 'cust-item';
+            div.innerHTML = `<span>${c.name} ${c.phone ? '(' + c.phone + ')' : '<small>(নম্বর নেই)</small>'}</span>` +
+                `<button class="del-btn" onclick="deleteCustomer(${i})">✕</button>`;
+            list.appendChild(div);
+        });
+
+        // datalist (এন্ট্রি ফর্মে নাম অটোকমপ্লিট)
+        let datalist = document.getElementById('customerNames');
+        datalist.innerHTML = customers.map(c => `<option value="${c.name}">`).join('');
+
+        // বিল পাঠানোর ড্রপডাউন
+        let billSelect = document.getElementById('billCustomer');
+        let recordNames = [...new Set(loadRecords().map(r => r.name))];
+        let allNames = [...new Set([...customers.map(c => c.name), ...recordNames])];
+        billSelect.innerHTML = allNames.length
+            ? allNames.map(n => `<option value="${n}">${n}</option>`).join('')
+            : '<option value="">কোনো নাম নেই</option>';
+    }
+
+    // ---------- এন্ট্রি ----------
+    function calculateTotal() {
+        let liter = parseFloat(document.getElementById('liter').value) || 0;
+        let rate = parseFloat(document.getElementById('rate').value) || 0;
+        document.getElementById('total').value = liter * rate;
+    }
+
+    function addRecord() {
+        let date = document.getElementById('entryDate').value || new Date().toISOString().slice(0,10);
+        let type = document.getElementById('type').value;
+        let name = document.getElementById('name').value.trim();
+        let liter = parseFloat(document.getElementById('liter').value);
+        let rate = parseFloat(document.getElementById('rate').value);
+
+        if (!name) { alert('নাম লিখুন!'); return; }
+        if (!liter || liter <= 0) { alert('সঠিক পরিমাণ (লিটার) লিখুন!'); return; }
+        if (!rate || rate <= 0) { alert('সঠিক দর (প্রতি লিটারের দাম) লিখুন!'); return; }
+
+        let total = liter * rate;
+        let records = loadRecords();
+        records.push({ date, type, name, liter, rate, total });
+        saveRecords(records);
+        renderRecords();
+        renderCustomers(); // নতুন নাম থাকলে বিল ড্রপডাউনে যোগ হবে
+
+        document.getElementById('name').value = '';
+        document.getElementById('liter').value = '';
+        document.getElementById('rate').value = '';
+        document.getElementById('total').value = '';
+    }
+
+    function deleteRecord(index) {
+        let records = loadRecords();
+        records.splice(index, 1);
+        saveRecords(records);
+        renderRecords();
+    }
+
+    function clearAll() {
+        if (!confirm('সব এন্ট্রি মুছে ফেলতে চান? এটি ফেরত পাওয়া যাবে না।')) return;
+        saveRecords([]);
+        renderRecords();
+    }
+
+    function renderRecords() {
+        let records = loadRecords();
+        let table = document.getElementById('recordList');
+        table.innerHTML = '';
+        let totalPurchase = 0, totalSale = 0;
+
+        records.forEach((r, i) => {
+            let row = table.insertRow();
+            row.innerHTML = `<td>${r.date || ''}</td><td>${r.type}</td><td>${r.name}</td><td>${r.liter} L</td><td>₹${r.total}</td>` +
+                `<td><button class="del-btn" onclick="deleteRecord(${i})">✕</button></td>`;
+            if (r.type.includes('ক্রয়')) totalPurchase += r.total; else totalSale += r.total;
+        });
+
+        document.getElementById('summary').innerHTML =
+            `<p class="purchase">মোট ক্রয়: ₹${totalPurchase}</p>` +
+            `<p class="sale">মোট বিক্রয়: ₹${totalSale}</p>` +
+            `<p>নিট (বিক্রয় - ক্রয়): ₹${totalSale - totalPurchase}</p>`;
+    }
+
+    // ---------- বিল (WhatsApp / PDF) ----------
+    function getSelectedCustomerRecords() {
+        let name = document.getElementById('billCustomer').value;
+        if (!name) { alert('একজন খামারী/গ্রাহক বাছুন।'); return null; }
+        let records = loadRecords().filter(r => r.name === name);
+        if (!records.length) { alert('এই নামে কোনো এন্ট্রি পাওয়া যায়নি।'); return null; }
+        return { name, records };
+    }
+
+    function sendWhatsAppBill() {
+        let data = getSelectedCustomerRecords();
+        if (!data) return;
+        let { name, records } = data;
+
+        let customers = loadCustomers();
+        let cust = customers.find(c => c.name === name);
+        let phone = cust ? cust.phone : '';
+
+        let totalPurchase = 0, totalSale = 0;
+        let lines = [`🧾 *দুধের হিসাব - ${name}*`, ''];
+        records.forEach(r => {
+            lines.push(`${r.date || ''} | ${r.type} | ${r.liter}L x ₹${r.rate} = ₹${r.total}`);
+            if (r.type.includes('ক্রয়')) totalPurchase += r.total; else totalSale += r.total;
+        });
+        lines.push('');
+        lines.push(`মোট ক্রয়: ₹${totalPurchase}`);
+        lines.push(`মোট বিক্রয়: ₹${totalSale}`);
+        lines.push(`নিট (বিক্রয় - ক্রয়): ₹${totalSale - totalPurchase}`);
+
+        let text = encodeURIComponent(lines.join('\n'));
+        let url = phone ? `https://wa.me/${phone}?text=${text}` : `https://api.whatsapp.com/send?text=${text}`;
+        window.open(url, '_blank');
+    }
+
+    function printPdfBill() {
+        let data = getSelectedCustomerRecords();
+        if (!data) return;
+        let { name, records } = data;
+
+        let customers = loadCustomers();
+        let cust = customers.find(c => c.name === name);
+        let phone = cust ? cust.phone : '—';
+
+        document.getElementById('pName').textContent = name;
+        document.getElementById('pPhone').textContent = phone;
+        document.getElementById('pDate').textContent = new Date().toLocaleDateString('bn-BD');
+
+        let tbody = document.getElementById('pTable');
+        tbody.innerHTML = '';
+        let totalPurchase = 0, totalSale = 0;
+        records.forEach(r => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td>${r.date || ''}</td><td>${r.type}</td><td>${r.liter}</td><td>₹${r.rate}</td><td>₹${r.total}</td>`;
+            tbody.appendChild(tr);
+            if (r.type.includes('ক্রয়')) totalPurchase += r.total; else totalSale += r.total;
+        });
+        document.getElementById('pPurchase').textContent = totalPurchase;
+        document.getElementById('pSale').textContent = totalSale;
+        document.getElementById('pNet').textContent = totalSale - totalPurchase;
+
+        document.getElementById('printInvoice').style.display = 'block';
+        window.print();
+        document.getElementById('printInvoice').style.display = 'none';
+    }
+
+    // ---------- শুরু ----------
+    document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
+    renderCustomers();
+    renderRecords();
+</script>
+</body>
+</html>
